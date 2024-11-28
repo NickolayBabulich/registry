@@ -1,0 +1,374 @@
+{% extends 'registry/base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-8">
+
+                <!-- Форма -->
+                <div class="card border-0 shadow">
+                    <div class="card-body p-4 p-lg-5">
+
+                        <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-4">
+                            <div class="icon-wrapper bg-primary bg-opacity-10 rounded-circle p-3">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5"
+                                     stroke-width="2">
+                                    <path d="M12 5v14M5 12h14"/>
+                                    <path d="M19 7v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="h4 mb-1">
+                                    {% if is_create %}Создание новой схемы реестра{% else %}Редактирование схемы
+                                        реестра{% endif %}
+                                </h1>
+                                <p class="text-muted mb-0">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Заполните необходимые поля для {% if is_create %}создания{% else %}
+                                    редактирования{% endif %}
+                                    схемы реестра
+                                </p>
+                            </div>
+                        </div>
+
+                        <form method="post" id="registryTypeForm" novalidate>
+                            {% csrf_token %}
+
+                            <!-- Основные поля -->
+                            <div class="mb-4">
+                                <label for="id_name" class="form-label">
+                                    Название:
+                                </label>
+                                <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="bi bi-pencil-square text-muted"></i>
+                                </span>
+                                    <input type="text"
+                                           name="name"
+                                           id="id_name"
+                                           value="{{ form.name.value|default:'' }}"
+                                           class="form-control"
+                                           placeholder="Введите название схемы"
+                                           required>
+                                </div>
+                                <div class="invalid-feedback">
+                                    <i class="bi bi-exclamation-circle me-1"></i>
+                                    Пожалуйста, укажите название схемы реестра
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="id_description" class="form-label">
+                                    Описание:
+                                </label>
+                                <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="bi bi-card-text text-muted"></i>
+                                </span>
+                                    <textarea name="description"
+                                              id="id_description"
+                                              class="form-control"
+                                              rows="3"
+                                              placeholder="Добавьте описание схемы (опционально)">{{ form.description.value|default:'' }}</textarea>
+                                </div>
+                            </div>
+
+                            <!-- Поля реестра -->
+                            <div class="registry-fields mb-4">
+                                <label class="form-label d-flex justify-content-between align-items-end mb-3">
+                                    <div>
+                                        <div>
+                                            Поля схемы:
+                                        </div>
+
+                                    </div>
+                                    <button type="button" id="add-field" class="btn btn-create btn-primary">
+                                        <i class="bi bi-plus-lg me-1"></i>
+                                        Добавить поле
+                                    </button>
+                                </label>
+
+                                <div id="fields-container" class="border rounded p-3 bg-light">
+                                    <!-- Существующие поля будут добавлены здесь -->
+                                    <div class="text-center text-muted py-4" id="no-fields-message">
+                                        <i class="bi bi-clipboard-plus" style="font-size: 2rem;"></i>
+                                        <p class="mb-0 mt-2"> {% if is_create %}Нажмите "Добавить поле" чтобы
+                                            сформировать схему{% else %}Нажмите "Добавить поле" для создания нового или измените существующее{% endif %}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Кнопки действий -->
+                            <div class="d-flex justify-content-between pt-4 border-top">
+                                <a href="{% url 'registry:schemas' %}" class="btn btn-danger px-4">
+                                    <i class="bi bi-x-lg me-1"></i>
+                                    Отмена
+                                </a>
+                                <button type="submit" class="btn btn-create btn-primary px-4">
+                                    <i class="bi bi-check-lg me-1"></i>
+                                    {% if is_create %}Создать{% else %}Сохранить{% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+       const FIELD_TYPES = [
+       {value: 'text', label: 'Текст'},
+       {value: 'number', label: 'Число'},
+       {value: 'date', label: 'Дата'},
+       {value: 'boolean', label: 'Логическое'}
+   ];
+
+   function createFieldRow() {
+       const row = document.createElement('div');
+       row.className = 'field-row card shadow-sm mb-3';
+
+       const rowContent = document.createElement('div');
+       rowContent.className = 'card-body p-3 d-flex gap-3';
+
+       // Поле для имени
+       const nameGroup = document.createElement('div');
+       nameGroup.className = 'flex-grow-1';
+
+       const nameInput = document.createElement('input');
+       nameInput.type = 'text';
+       nameInput.className = 'form-control';
+       nameInput.placeholder = 'Название поля';
+       nameInput.required = true;
+
+       nameGroup.appendChild(nameInput);
+
+       // Селект для типа
+       const typeGroup = document.createElement('div');
+       typeGroup.style.width = '200px';
+
+       const typeSelect = document.createElement('select');
+       typeSelect.className = 'form-select';
+
+       FIELD_TYPES.forEach(type => {
+           const option = document.createElement('option');
+           option.value = type.value;
+           option.textContent = type.label;
+           typeSelect.appendChild(option);
+       });
+
+       typeGroup.appendChild(typeSelect);
+
+       // Кнопка удаления
+       const deleteButton = document.createElement('button');
+       deleteButton.type = 'button';
+       deleteButton.className = 'btn btn-outline-danger';
+       deleteButton.innerHTML = `
+           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M6 18L18 6M6 6l12 12"/>
+           </svg>
+       `;
+
+       deleteButton.onclick = () => {
+           row.remove();
+           updateNoFieldsMessage();
+       };
+
+       rowContent.appendChild(nameGroup);
+       rowContent.appendChild(typeGroup);
+       rowContent.appendChild(deleteButton);
+       row.appendChild(rowContent);
+       addValidationListeners(row);
+
+       return row;
+   }
+
+   function updateNoFieldsMessage() {
+       const fieldsContainer = document.getElementById('fields-container');
+       const noFieldsMessage = document.getElementById('no-fields-message');
+       const fieldRows = fieldsContainer.querySelectorAll('.field-row');
+
+       if (fieldRows.length === 0) {
+           noFieldsMessage.style.display = 'block';
+       } else {
+           noFieldsMessage.style.display = 'none';
+       }
+
+       // Удаляем сообщение об ошибке при наличии полей
+       if (fieldRows.length > 0) {
+           const errorMessage = document.querySelector('.fields-error-message');
+           if (errorMessage) {
+               errorMessage.remove();
+           }
+       }
+   }
+
+   function showError(message) {
+       // Удаляем предыдущее сообщение об ошибке, если оно есть
+       const existingError = document.querySelector('.fields-error-message');
+       if (existingError) {
+           existingError.remove();
+       }
+
+       const errorDiv = document.createElement('div');
+       errorDiv.className = 'alert alert-danger mt-2 fields-error-message';
+       errorDiv.innerHTML = `<i class="bi bi-exclamation-circle me-1"></i>${message}`;
+
+       const fieldsContainer = document.getElementById('fields-container');
+       fieldsContainer.parentNode.insertBefore(errorDiv, fieldsContainer.nextSibling);
+   }
+
+   window.addEventListener('load', function () {
+       const fieldsContainer = document.getElementById('fields-container');
+       const addFieldButton = document.getElementById('add-field');
+       const form = document.getElementById('registryTypeForm');
+
+       // Обработчик добавления поля
+       addFieldButton.onclick = () => {
+           const row = createFieldRow();
+           fieldsContainer.appendChild(row);
+           row.querySelector('input').focus();
+           updateNoFieldsMessage();
+       };
+
+       // Загрузка существующих полей
+       {% if form.fields_schema.value %}
+           const existingFields = {{ form.fields_schema.value|safe }};
+           if (Array.isArray(existingFields)) {
+               existingFields.forEach(field => {
+                   const row = createFieldRow();
+                   row.querySelector('input').value = field.name;
+                   row.querySelector('select').value = field.type;
+                   fieldsContainer.appendChild(row);
+               });
+               updateNoFieldsMessage();
+           }
+       {% endif %}
+
+       // Валидация формы
+       form.addEventListener('submit', function (e) {
+           e.preventDefault();
+           let isValid = true;
+
+           // Удаляем предыдущие сообщения об ошибках
+           const existingError = document.querySelector('.fields-error-message');
+           if (existingError) {
+               existingError.remove();
+           }
+
+           // Проверка наличия полей
+           const fieldRows = fieldsContainer.querySelectorAll('.field-row');
+           if (fieldRows.length === 0) {
+               showError('Добавьте хотя бы одно поле в схему');
+               isValid = false;
+               return;
+           }
+
+           // Проверка основного названия
+           const nameInput = document.getElementById('id_name');
+           if (!nameInput.value.trim()) {
+               nameInput.classList.add('is-invalid');
+               isValid = false;
+           } else {
+               nameInput.classList.remove('is-invalid');
+           }
+
+           // Проверка полей реестра
+           const fieldNames = new Set();
+           let duplicateFound = false;
+           let emptyFieldFound = false;
+
+           fieldsContainer.querySelectorAll('input[type="text"]').forEach(input => {
+               const name = input.value.trim();
+               if (!name) {
+                   input.classList.add('is-invalid');
+                   emptyFieldFound = true;
+                   isValid = false;
+               } else {
+                   if (fieldNames.has(name)) {
+                       duplicateFound = true;
+                       input.classList.add('is-invalid');
+                       isValid = false;
+                   } else {
+                       fieldNames.add(name);
+                       input.classList.remove('is-invalid');
+                   }
+               }
+           });
+
+           if (emptyFieldFound) {
+               showError('Заполните названия всех полей');
+               return;
+           }
+
+           if (duplicateFound) {
+               showError('Имена полей должны быть уникальными');
+               return;
+           }
+
+           if (isValid) {
+               const fields = [];
+               fieldsContainer.querySelectorAll('.field-row').forEach(row => {
+                   const name = row.querySelector('input').value.trim();
+                   const type = row.querySelector('select').value;
+                   if (name) {
+                       fields.push({name, type});
+                   }
+               });
+
+               const schemaInput = document.createElement('input');
+               schemaInput.type = 'hidden';
+               schemaInput.name = 'fields_schema';
+               schemaInput.value = JSON.stringify(fields);
+               form.appendChild(schemaInput);
+
+               form.submit();
+           }
+       });
+
+       // Обработчик удаления поля
+       fieldsContainer.addEventListener('click', function(e) {
+           if (e.target.closest('.btn-outline-danger')) {
+               e.target.closest('.field-row').remove();
+               updateNoFieldsMessage();
+           }
+       });
+   });
+
+   // Валидация основных полей при вводе
+   const inputs = document.querySelectorAll('.form-control');
+   inputs.forEach(input => {
+       input.addEventListener('input', function () {
+           if (this.value.trim() !== '') {
+               this.classList.add('is-valid');
+               this.classList.remove('is-invalid');
+           } else {
+               this.classList.remove('is-valid');
+           }
+       });
+   });
+
+   // Валидация динамических полей при вводе
+   function addValidationListeners(row) {
+       const input = row.querySelector('input');
+       input.addEventListener('input', function () {
+           if (this.value.trim() !== '') {
+               this.classList.add('is-valid');
+               this.classList.remove('is-invalid');
+
+               // Удаляем сообщение об ошибке при исправлении
+               const errorMessage = document.querySelector('.fields-error-message');
+               if (errorMessage) {
+                   errorMessage.remove();
+               }
+           } else {
+               this.classList.remove('is-valid');
+           }
+       });
+   }
+    </script>
+
+{% endblock %}

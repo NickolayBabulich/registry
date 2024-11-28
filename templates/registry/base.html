@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Система реестров документов{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    {% block extra_css %}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    {% endblock %}
+</head>
+<body class="bg-light">
+{% include 'registry/includes/navbar.html' %}
+
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="toast-notification" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header {% if message.tags %}bg-{{ message.tags }} text-white{% endif %}">
+                    {% if message.tags == 'success' %}
+                        <i class="bi bi-check-circle me-2"></i>
+                    {% elif message.tags == 'error' %}
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                    {% elif message.tags == 'warning' %}
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                    {% else %}
+                        <i class="bi bi-info-circle me-2"></i>
+                    {% endif %}
+                    <strong class="me-auto">Уведомление</strong>
+                    <button type="button" class="btn-close" onclick="closeToast(this)" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    {{ message }}
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+<div class="container-fluid px-4 py-4">
+    {% block content %}
+
+    {% endblock %}
+
+</div>
+{% include 'registry/includes/footer.html' %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toasts = document.querySelectorAll('.toast-notification');
+
+        toasts.forEach(toast => {
+            // Задержка перед добавлением класса show для анимации появления
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Автоматическое скрытие через 5 секунд
+            setTimeout(() => {
+                closeToast(toast.querySelector('.btn-close'));
+            }, 5000);
+        });
+    });
+
+    function closeToast(closeButton) {
+        const toast = closeButton.closest('.toast-notification');
+        toast.classList.remove('show');
+        toast.classList.add('hiding');
+
+        // Удаляем элемент после завершения анимации
+        toast.addEventListener('transitionend', function(e) {
+            // Проверяем, что это именно анимация transform
+            if (e.propertyName === 'transform') {
+                toast.remove();
+            }
+        });
+    }
+</script>
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

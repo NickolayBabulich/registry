@@ -1,0 +1,192 @@
+{% extends 'registry/base.html' %}
+{% load registry_tags %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="page-header mb-4">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <a href="{% url 'registry:documents' %}"
+                       class="btn btn-outline-secondary btn-sm">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Вернуться к списку
+                    </a>
+                    <h1 class="page-title mb-0">{{ document.name }}</h1>
+                    {% if user_permission != 'owner' %}
+                        <span class="badge {{ user_permission|permission_badge_color }}">
+                        {{ user_permission|get_permission_display }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="metadata text-muted">
+                    <small>Создан: {{ document.created_at|date:"d.m.Y H:i" }} /</small>
+                    <small>Обновлен: {{ document.updated_at|date:"d.m.Y H:i" }} /</small>
+                    <small>Схема: {{ document.registry_schema.name }} /</small>
+                    <small>Создатель: {{ document.created_by.get_full_name|default:document.created_by.username }}</small>
+
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                {% if user_permission == 'owner' or user_permission == 'edit' or user_permission == 'admin' %}
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success d-inline-flex align-items-center gap-2"
+                                type="button"
+                                data-bs-toggle="dropdown">
+                            <i class="bi bi-download" style="font-size: 1.42rem;"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center"
+                                   href="{% url 'registry:document-export' document.id 'json' %}">
+                                    <i class="bi bi-filetype-json me-2"></i>
+                                    Экспорт в JSON
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center"
+                                   href="{% url 'registry:document-export' document.id 'xlsx' %}">
+                                    <i class="bi bi-file-earmark-excel me-2"></i>
+                                    Экспорт в Excel
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center"
+                                   href="{% url 'registry:document-export' document.id 'pdf' %}">
+                                    <i class="bi bi-file-earmark-pdf me-2"></i>
+                                    Экспорт в PDF
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                {% endif %}
+
+
+
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" type="button"
+                            data-bs-toggle="dropdown">
+                        <i class="bi bi-gear" style="font-size: 1.42rem;"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% if user_permission == 'owner' %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'registry:document-edit' document.id %}">
+                                    <i class="bi bi-pencil me-2"></i>
+                                    Редактировать реестр
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'registry:document-access' document.id %}">
+                                    <i class="bi bi-people me-2"></i>
+                                    Управление доступом
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger"
+                                   href="{% url 'registry:document-delete' document.id %}">
+                                    <i class="bi bi-trash me-2"></i>
+                                    Удалить реестр
+                                </a>
+                            </li>
+                            </ul>
+                        {% elif  user_permission == 'edit' %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'registry:document-edit' document.id %}">
+                                    <i class="bi bi-pencil me-2"></i>
+                                    Редактировать реестр
+                                </a>
+                            </li>
+                        {% elif user_permission == 'admin' %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'registry:document-edit' document.id %}">
+                                    <i class="bi bi-pencil me-2"></i>
+                                    Редактировать реестр
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger"
+                                   href="{% url 'registry:document-delete' document.id %}">
+                                    <i class="bi bi-trash me-2"></i>
+                                    Удалить реестр
+                                </a>
+                            </li>
+                        {% endif %}
+                </div>
+
+            </div>
+        </div>
+        <div class="card registry-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                        <tr>
+                            {% for field_def in document.registry_schema.fields_schema %}
+                                <th>{{ field_def.name }}</th>
+                            {% endfor %}
+
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for entry in document.document_fields.all %}
+                            <tr>
+                                {% for field_def in document.registry_schema.fields_schema %}
+                                    <td>
+                                        {% with value=entry.data|get_item:field_def.name %}
+                                            {% if field_def.type == 'date' %}
+                                                {{ value|format_date }}
+                                            {% elif field_def.type == 'boolean' %}
+                                                {% if value %}Да{% else %}Нет{% endif %}
+                                            {% else %}
+                                                {{ value }}
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                {% endfor %}
+
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="{{ document.registry_schema.fields_schema|length|add:1 }}"
+                                    class="text-center py-5">
+                                    <div class="">
+                                        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none"
+                                             stroke="#4f46e5" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                            <path d="M14 2v6h6"/>
+                                            <line x1="8" y1="13" x2="16" y2="13"/>
+                                            <line x1="8" y1="17" x2="16" y2="17"/>
+                                            <line x1="8" y1="9" x2="11" y2="9"/>
+                                        </svg>
+                                        <h3 class="empty-state-title">В этом документе пока нет записей</h3>
+                                        {% if user_permission == 'owner' or user_permission == 'edit' or user_permission == 'admin' %}
+                                            <p class="empty-state-description">Добавьте новые записи через
+                                                редактирование документа</p>
+                                            <a href="{% url 'registry:document-edit' document.id %}"
+                                               class="btn btn-create btn-primary d-inline-flex align-items-center gap-2">
+                                                <i class="bi bi-file-earmark-plus me-2" style="font-size: 1.5rem;"></i>
+                                                Создать новую запись
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

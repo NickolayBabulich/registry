@@ -1,0 +1,144 @@
+{% load registry_tags %}
+{% if registry_schema %}
+    <div class="document-entries mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">Записи</h4>
+            {% if user_permission == 'owner' or user_permission == 'edit' or user_permission == 'admin' %}
+                <button type="button" class="btn btn-create btn-primary px-4 add-entry-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Добавить запись
+                </button>
+            {% endif %}
+        </div>
+
+        <div class="entries-container">
+            {% for entry in entries %}
+                <div class="entry-form mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Запись #{{ forloop.counter }}</h5>
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-entry-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                {% for field in registry_schema.fields_schema %}
+                                    <div class="col-md-6">
+                                        <label class="form-label">{{ field.name }}</label>
+                                        {% with field_type=field.type value=entry.data|get_item:field.name %}
+                                            {% if field_type == 'text' %}
+                                                <input type="text" name="form-{{ forloop.parentloop.counter0 }}-{{ field.name }}"
+                                                       value="{{ value }}" class="form-control">
+                                            {% elif field_type == 'number' %}
+                                                <input type="number" step="any" name="form-{{ forloop.parentloop.counter0 }}-{{ field.name }}"
+                                                       value="{{ value }}" class="form-control">
+                                            {% elif field_type == 'date' %}
+                                                <input type="date" name="form-{{ forloop.parentloop.counter0 }}-{{ field.name }}"
+                                                       value="{{ value }}" class="form-control">
+                                            {% elif field_type == 'boolean' %}
+                                                <select name="form-{{ forloop.parentloop.counter0 }}-{{ field.name }}" class="form-select">
+                                                    <option value="true" {% if value %}selected{% endif %}>Да</option>
+                                                    <option value="false" {% if not value %}selected{% endif %}>Нет</option>
+                                                </select>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Шаблон для новой записи -->
+        <template id="entry-template">
+            <div class="entry-form mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Новая запись</h5>
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-entry-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {% for field in registry_schema.fields_schema %}
+                                <div class="col-md-6">
+                                    <label class="form-label">{{ field.name }}</label>
+                                    {% if field.type == 'text' %}
+                                        <input type="text" name="form-{index}-{{ field.name }}" class="form-control">
+                                    {% elif field.type == 'number' %}
+                                        <input type="number" step="any" name="form-{index}-{{ field.name }}" class="form-control">
+                                    {% elif field.type == 'date' %}
+                                        <input type="date" name="form-{index}-{{ field.name }}" class="form-control">
+                                    {% elif field.type == 'boolean' %}
+                                        <select name="form-{index}-{{ field.name }}" class="form-select">
+                                            <option value="true">Да</option>
+                                            <option value="false">Нет</option>
+                                        </select>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const entriesContainer = document.querySelector('.entries-container');
+            const addEntryBtn = document.querySelector('.add-entry-btn');
+            const template = document.querySelector('#entry-template');
+
+            if (addEntryBtn && template) {
+                addEntryBtn.addEventListener('click', function() {
+                    const newIndex = document.querySelectorAll('.entry-form').length;
+                    const newEntry = template.content.cloneNode(true);
+
+                    // Обновляем индексы в именах полей
+                    newEntry.querySelectorAll('[name*="{index}"]').forEach(input => {
+                        input.name = input.name.replace('{index}', newIndex);
+                    });
+
+                    // Обновляем номер записи
+                    const title = newEntry.querySelector('.card-header h5');
+                    if (title) {
+                        title.textContent = `Запись #${newIndex + 1}`;
+                    }
+
+                    entriesContainer.appendChild(newEntry);
+                });
+
+                // Делегирование события для кнопок удаления
+                entriesContainer.addEventListener('click', function(e) {
+                    if (e.target.closest('.remove-entry-btn')) {
+                        const entryForm = e.target.closest('.entry-form');
+                        if (entryForm) {
+                            entryForm.remove();
+                            // Обновляем нумерацию оставшихся записей
+                            document.querySelectorAll('.entry-form').forEach((form, index) => {
+                                const title = form.querySelector('.card-header h5');
+                                if (title) {
+                                    title.textContent = `Запись #${index + 1}`;
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+{% endif %}

@@ -1,0 +1,179 @@
+<!-- registry/registry/detail.html -->
+{% extends 'registry/base.html' %}
+{% load registry_tags %}
+
+{% block content %}
+    <div class="container py-4">
+        <!-- Шапка документа -->
+        <div class="page-header mb-4">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <h1 class="page-title mb-0">{{ registry.name }}</h1>
+
+                    {% if user_permission != 'owner' %}
+                        <span class="badge {{ user_permission|permission_badge_color }}">
+                            {{ user_permission|get_permission_display }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-clock me-1"></i>
+                    Создан: {{ registry.created_at|date:"d.m.Y H:i" }}
+                    <i class="bi bi-person ms-3 me-1"></i>
+                    Владелец: {{ registry.owner.get_full_name|default:registry.owner.username }}
+                </p>
+            </div>
+
+            <!-- Кнопки действий -->
+            <div class="d-flex align-items-center gap-2">
+
+
+                {% if user_permission == 'owner' %}
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success d-inline-flex align-items-center gap-2"
+                                type="button"
+                                data-bs-toggle="dropdown">
+                            <i class="bi bi-download" style="font-size: 1.42rem;"></i>
+                            Экспорт
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center"
+                                   href="{% url 'registry:registry-export' registry.id 'json' %}">
+                                    <i class="bi bi-filetype-json me-2"></i>
+                                    Экспорт в JSON
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center"
+                                   href="{% url 'registry:registry-export' registry.id 'xlsx' %}">
+                                    <i class="bi bi-file-earmark-excel me-2"></i>
+                                    Экспорт в Excel
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center"
+                                   href="{% url 'registry:registry-export' registry.id 'pdf' %}">
+                                    <i class="bi bi-file-earmark-pdf me-2"></i>
+                                    Экспорт в PDF
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                                data-bs-toggle="dropdown">
+                            <i class="bi bi-gear me-2" style="font-size: 1.42rem;"></i>
+                            Управление
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'registry:registry-edit' registry.id %}">
+                                    <i class="bi bi-pencil me-2"></i>
+                                    Редактировать реестр
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'registry:registry-access' registry.id %}">
+                                    <i class="bi bi-people me-2"></i>
+                                    Управление доступом
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger"
+                                   href="{% url 'registry:registry-delete' registry.id %}">
+                                    <i class="bi bi-trash me-2"></i>
+                                    Удалить реестр
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if documents and user_permission == 'owner' or user_permission == 'admin' %}
+                    <a href="{% url 'registry:document-create' registry.id %}"
+                       class="btn btn-create btn-primary d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-plus me-2" style="font-size: 1.5rem;"></i>
+                        Создать документ
+                    </a>
+
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Список документов -->
+        {% if documents %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Название документа</th>
+                        <th>Создатель</th>
+                        <th>Дата создания</th>
+                        <th>Последнее обновление</th>
+                        <th>Действия</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for document in documents %}
+                        <tr>
+                            <td>{{ document.name }}</td>
+                            <td>{{ document.created_by.get_full_name|default:document.created_by.username }}</td>
+                            <td>{{ document.created_at|date:"d.m.Y H:i" }}</td>
+                            <td>{{ document.updated_at|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'registry:document-detail' document.id %}"
+                                       class="btn btn-sm btn-outline-primary btn-outline-primary--table btn--table">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+
+                                    {% if user_permission == 'owner' or user_permission == 'edit' or user_permission == 'admin' %}
+                                        <a href="{% url 'registry:document-edit' document.id %}"
+                                           class="btn btn-sm btn-outline-primary btn-outline-primary--table btn--table">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    {% endif %}
+
+                                    {% if user_permission == 'owner' or user_permission == 'admin' %}
+                                        <a href="{% url 'registry:document-delete' document.id %}"
+                                           class="btn btn-sm btn-outline-primary btn-outline-primary--table btn--table">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <svg class="empty-state-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4f46e5"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                    <path d="M14 2v6h6"></path>
+                    <line x1="8" y1="13" x2="16" y2="13"></line>
+                    <line x1="8" y1="17" x2="16" y2="17"></line>
+                    <line x1="8" y1="9" x2="11" y2="9"></line>
+                </svg>
+                <h3 class="empty-state-title">В этом реестре пока нет документов</h3>
+                {% if user_permission == 'owner' or user_permission == 'edit' or user_permission == 'admin' %}
+                    <p class="empty-state-description">
+                        Создайте первый документ, нажав на кнопку ниже.
+                    </p>
+                    <a href="{% url 'registry:document-create' registry.id %}"
+                       class="btn btn-create btn-primary d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-plus me-2" style="font-size: 1.5rem;"></i>
+                        Создать документ
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

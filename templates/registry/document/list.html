@@ -1,0 +1,153 @@
+{% extends 'registry/base.html' %}
+{% load registry_tags %}
+
+{% block content %}
+    <div class="container py-4">
+
+        <!-- Шапка страницы -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title mb-1">Список реестров</h1>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Список реестров в которых вы можете работать
+                </p>
+            </div>
+
+            <!-- Показываем кнопку создания только владельцу -->
+            {% if documents %}
+                <a href="{% url 'registry:document-create' %}"
+                   class="btn btn-create btn-primary d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-plus me-2" style="font-size: 1.5rem;"></i>
+                    Создать реестр
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="row g-4">
+            {% for document in documents %}
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="registry-card card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-folder2-open me-2"></i>
+                                    <h3 class="registry-title mb-0">{{ document.name }}</h3>
+                                </div>
+
+                                {% if document_permissions|get_item:document.id != 'owner' %}
+                                    <div class="d-flex align-items-center mt-1">
+                                        <small class="text-muted me-2 fw-medium">Делегирован с правом:</small>
+                                        <span class="badge {{ document_permissions|get_item:document.id|permission_badge_color }}">
+                                        {{ document_permissions|get_item:document.id|get_permission_display }}
+                                    </span>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            {% if document_permissions|get_item:document.id == 'owner' %}
+                                <div class="dropdown">
+                                   <button class="btn btn-icon" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item"
+                                               href="{% url 'registry:document-edit' document.pk %}">
+                                                <i class="bi bi-pencil me-2"></i>
+                                                Редактировать
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item"
+                                               href="{% url 'registry:document-access' document.pk %}">
+                                                <i class="bi bi-people me-2"></i>
+                                                Управление доступом
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item text-danger"
+                                               href="{% url 'registry:document-delete' document.pk %}">
+                                                <i class="bi bi-trash me-2"></i>
+                                                Удалить
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body d-flex flex-column">
+                            <div class="fields-section flex-grow-1">
+                                <div class="fields-header">
+                                    <h4 class="fields-title">Схема документа:</h4>
+                                    <span class="fields-counter">{{ document.registry_schema.name }}</span>
+                                </div>
+
+                                {% if document.registry_schema.description %}
+                                    <div class="fields-list-container fields-list-container-description mt-3">
+                                        <h4 class="fields-title">Описание схемы:</h4>
+                                        <p class="small">{{ document.registry_schema.description }}</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="card-footer-content mt-auto pt-3">
+                                <div class="info-block flex-column mb-3">
+                                    <div class="info-item">
+                                        <span class="info-label">Дата создания:</span>
+                                        <span class="info-value">{{ document.created_at|date:"d.m.Y H:i" }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Создатель:</span>
+                                        <span class="info-value">
+                                        {{ document.created_by.get_full_name|default:document.created_by.username }}
+                                    </span>
+                                    </div>
+                                </div>
+
+                                <div class="actions">
+                                    <a href="{% url 'registry:document-detail' document.pk %}"
+                                       class="btn btn-action btn-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="8" y1="13" x2="16" y2="13"></line>
+                                            <line x1="8" y1="17" x2="16" y2="17"></line>
+                                            <line x1="8" y1="9" x2="11" y2="9"></line>
+                                        </svg>
+                                        Просмотр реестра
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+
+
+                <div class="col-12">
+                    <div class="empty-state">
+                        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2">
+                            <path d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                        </svg>
+                        <h3 class="empty-state-title">Еще не создано ни одного реестра</h3>
+                        <p class="empty-state-description">Начните с создания нового реестра.</p>
+                        <a href="{% url 'registry:document-create' %}"
+                           class="btn btn-create btn-primary d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-plus me-2" style="font-size: 1.5rem;"></i>
+                            Создать первый реестр
+                        </a>
+                    </div>
+                </div>
+
+
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

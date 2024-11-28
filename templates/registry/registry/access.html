@@ -1,0 +1,136 @@
+{% extends 'registry/base.html' %}
+{% load registry_tags %}
+{% block content %}
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-8">
+                <div class="card border-0 shadow">
+                    <div class="card-body p-4 p-lg-5">
+                        <!-- Заголовок -->
+                        <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-4">
+                            <div class="icon-wrapper bg-primary bg-opacity-10 rounded-circle p-3">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="h4 mb-1">Управление доступом</h1>
+                                <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>Форма предоставления доступ к реестру - {{ registry.name }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Форма добавления доступа -->
+                        <form method="post" class="mb-4">
+                            {% csrf_token %}
+                            <div class="row g-3">
+                                <div class="col-md-5">
+                                    <label for="{{ form.user.id_for_label }}"
+                                           class="form-label">{{ form.user.label }}</label>
+                                    {{ form.user }}
+                                    {% if form.user.help_text %}
+                                        <div class="form-text">{{ form.user.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.user.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.user.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-5">
+                                    <label for="{{ form.permission.id_for_label }}"
+                                           class="form-label">Разрешения</label>
+                                    {{ form.permission }}
+                                    {% if form.permission.help_text %}
+                                        <div class="form-text">{{ form.permission.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.permission.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.permission.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center mb-3">
+                                    <button type="submit" class="btn btn-action btn-primary w-100" aria-label="Добавить">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="16"/>
+                                            <line x1="8" y1="12" x2="16" y2="12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Список пользователей с доступом -->
+                        <div class="table-responsive">
+                            <table class="table text-center">
+                                <thead class="table-light">
+                                <tr>
+                                    <th class="border-bottom">Пользователь</th>
+                                    <th class="border-bottom">Уровень доступа</th>
+                                    <th class="border-bottom">Дата предоставления</th>
+                                    <th class="border-bottom">Кем предоставлен</th>
+                                    <th class="border-bottom text-end">Действия</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for access in shared_users %}
+                                    <tr>
+                                        <td>
+                                            <div>{{ access.user.get_full_name|default:access.user.username }}</div>
+                                            <div class="small text-muted">{{ access.user.email }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ access.permission|permission_badge_color }}">
+                                                {{ access.get_permission_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ access.created_at|date:"d.m.Y H:i" }}</td>
+                                        <td>
+                                            {{ access.created_by.get_full_name|default:access.created_by.username }}
+                                        </td>
+                                        <td class="text-center">
+                                            <form method="post" class="d-inline"
+                                                  action="{% url 'registry:registry-access-delete' registry.id access.user.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5 text-muted">
+                                            <div class="">
+                                                <i class="bi bi-people fs-1 mb-3"></i>
+                                                <h6 class="empty-state-title">Нет предоставленных доступов</h6>
+                                                <p class="empty-state-description">
+                                                    Доступ к реестру еще никому не предоставлен.
+                                                    Используйте форму выше, чтобы предоставить доступ другим
+                                                    пользователям.
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Кнопка возврата -->
+                        <div class="mt-4 pt-3 border-top">
+                            <a href="{% url 'registry:registry-detail' registry.id %}"
+                               class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>
+                                Вернуться к реестру
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

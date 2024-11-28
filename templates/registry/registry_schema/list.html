@@ -1,0 +1,175 @@
+{% extends 'registry/base.html' %}
+{% load registry_tags %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title mb-1">Схемы реестров</h1>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Схема представляет из себя то, какие поля будут доступны в документах реестра
+                </p>
+            </div>
+
+            {% if registry_schemas %}
+                <a href="{% url 'registry:schema-create' %}"
+                   class="btn btn-create btn-primary d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-plus me-2" style="font-size: 1.5rem;"></i>
+                    Создать схему реестра
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="row g-4">
+            {% for registry_schema in registry_schemas %}
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="registry-card card h-100">
+                        <div class="card-header d-flex justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-table me-2"></i>
+                                <h3 class="registry-title mb-0">{{ registry_schema.name }}</h3>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-icon" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+
+                                <!-- Выпадающее меню карточки -->
+
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'registry:schema-edit' registry_schema.pk %}"><i
+                                                class="bi bi-pencil me-2"></i>Редактировать</a>
+                                    </li>
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li><a class="dropdown-item text-danger"
+                                           href="{% url 'registry:schema-delete' registry_schema.pk %}"><i
+                                            class="bi bi-trash me-2"></i>Удалить</a>
+                                    </li>
+                                </ul>
+
+                            </div>
+                        </div>
+
+                        <div class="card-body d-flex flex-column">
+                            <div class="fields-section flex-grow-1">
+                                <div class="fields-header">
+                                    <h4 class="fields-title">Схема полей:</h4>
+                                    <span class="fields-counter">
+                                    {{ registry_schema.fields_schema|length }}
+                                        {% if registry_schema.fields_schema|length == 1 %}поле
+                                        {% elif registry_schema.fields_schema|length < 5 %}поля
+                                        {% else %}полей{% endif %}
+                                </span>
+                                </div>
+
+                                <div class="fields-list-header">
+                                    <div class="fields-list-item-first">
+                                        <span>Название поля:</span>
+                                        <span>Тип:</span>
+                                    </div>
+                                </div>
+
+                                <div class="fields-list-container">
+                                    <ul class="list-unstyled">
+                                        {% for field in registry_schema.fields_schema %}
+                                            <li class="fields-list-item">
+                                                <span class="field-type">{{ field.name }}</span>
+                                                <span class="field-type">
+                        {% with type=field.type|field_type_display %}
+                            {% if type == 'Текст' %}
+                                <svg class="field-type-icon" width="16" height="16" viewBox="0 0 20 20"
+                                     fill="currentColor">
+                                <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"></path>
+                            </svg>
+                            {% elif type == 'Число' %}
+                                <svg class="field-type-icon" width="16" height="16" viewBox="0 0 20 20"
+                                     fill="currentColor">
+                                <path fill-rule="evenodd"
+                                      d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm4-1a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1z"
+                                      clip-rule="evenodd"></path>
+                            </svg>
+                            {% elif type == 'Дата' %}
+                                <svg class="field-type-icon" width="16" height="16" viewBox="0 0 20 20"
+                                     fill="currentColor">
+                                <path fill-rule="evenodd"
+                                      d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                      clip-rule="evenodd"></path>
+                            </svg>
+                            {% elif type == 'Логическое' %}
+                                <svg class="field-type-icon" width="16" height="16" viewBox="0 0 20 20"
+                                     fill="currentColor"><path fill-rule="evenodd"
+                                                               d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                               clip-rule="evenodd"></path>
+                            </svg>
+                            {% endif %}
+                            {{ type }}
+                        {% endwith %}
+                    </span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+
+                                <!-- Дополнительная информация -->
+                                {% if registry_schema.description %}
+                                    <div class="fields-list-container fields-list-container-description mt-1">
+                                        <h4 class="fields-title">Описание:</h4>
+                                        <small class="text-muted">{{ registry_schema.description }}</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="card-footer-content mt-auto pt-1">
+                                <div class="info-block mb-3">
+                                    <div class="info-item">
+                                        <span class="info-label">Дата создания:</span>
+                                        <span class="info-value">{{ registry_schema.created_at|date:"d.m.Y" }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="actions">
+                                    <a href="{% url 'registry:document-create-from-schema' registry_schema.pk %}"
+                                       class="btn btn-action btn-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2">
+                                            <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
+                                        </svg>
+                                        Создать реестр этой схемы
+                                    </a>
+                                    <a href="{% url 'registry:schema-delete' registry_schema.pk %}"
+                                       class="btn btn-action btn-outline-danger">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2">
+                                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12">
+                    <div class="empty-state">
+                        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2">
+                            <path d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                        </svg>
+                        <h3 class="empty-state-title">Отсутствуют схемы реестров</h3>
+                        <p class="empty-state-description">Начните с создания новой схемы реестра.</p>
+                        <a href="{% url 'registry:schema-create' %}"
+                           class="btn btn-create btn-primary d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-plus me-2" style="font-size: 1.5rem;"></i>
+                            Создать новую схему реестра
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

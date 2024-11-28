@@ -1,0 +1,67 @@
+<nav class="navbar navbar-expand-lg bg-white navbar-shadow">
+    <div class="container-fluid px-4">
+        <!-- Логотип -->
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <svg class="me-2" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6"/>
+                <line x1="8" y1="13" x2="16" y2="13"/>
+                <line x1="8" y1="17" x2="16" y2="17"/>
+                <line x1="8" y1="9" x2="11" y2="9"/>
+            </svg>
+            <span class="fw-bold text-gradient">Система реестров</span>
+        </a>
+
+        <!-- Кнопка мобильного меню -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Основное содержимое навбара -->
+        <div class="collapse navbar-collapse" id="navbarContent">
+
+            <!-- Навигационные ссылки -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link {% if 'documents' in request.path %}active{% endif %}"
+                       href="{% url 'registry:documents' %}">Мои реестры</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if 'registry-schemas' in request.path %}active{% endif %}"
+                       href="{% url 'registry:schemas' %}">Схемы реестров</a>
+                </li>
+            </ul>
+
+            <!-- Правая часть навбара -->
+            <div class="d-flex align-items-center gap-4">
+
+                <!-- Профиль -->
+                <div class="dropdown">
+                    <button class="btn p-0" type="button" data-bs-toggle="dropdown">
+                        {% if user.profile.avatar %}
+                            <img src="{{ user.profile.avatar.url }}" class="rounded-circle" width="40" height="40"
+                                 alt="Профиль">
+                        {% else %}
+                            <img src="/api/placeholder/40/40" class="rounded-circle" width="40" height="40"
+                                 alt="Профиль">
+                        {% endif %}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#">Профиль</a></li>
+                        <li><a class="dropdown-item" href="#">Настройки</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <form method="post" action="">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item text-danger">Выход</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
