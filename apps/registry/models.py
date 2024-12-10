@@ -6,13 +6,14 @@ NULLABLE = {
     "null": True,
 }
 
+
 class RegistrySchema(models.Model):
     name = models.CharField(max_length=255, verbose_name="Название")
     description = models.TextField(**NULLABLE, verbose_name="Описание")
     fields_schema = models.JSONField(default=dict, verbose_name="Схема полей")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="registry_schema", db_index=True,
-                            verbose_name="Владелец")
+                              verbose_name="Владелец")
 
     class Meta:
         db_table = "registry_schema"
@@ -23,11 +24,12 @@ class RegistrySchema(models.Model):
     def __str__(self):
         return self.name
 
+
 class Document(models.Model):
     name = models.CharField(max_length=255, verbose_name="Название")
     registry_schema = models.ForeignKey(RegistrySchema, on_delete=models.CASCADE, verbose_name="Схема реестра")
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_documents",
-                                 verbose_name="Создатель")
+                                   verbose_name="Создатель")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
 
@@ -40,9 +42,10 @@ class Document(models.Model):
     def __str__(self):
         return f"{self.name} ({self.registry_schema.name})"
 
+
 class DocumentField(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="document_fields",
-                               verbose_name="Документ")
+                                 verbose_name="Документ")
     data = models.JSONField(default=dict, verbose_name="Данные")
 
     class Meta:
@@ -52,6 +55,7 @@ class DocumentField(models.Model):
 
     def __str__(self):
         return f"Запись №{self.pk} в документе {self.document.name}"
+
 
 class DocumentAccess(models.Model):
     PERMISSION_CHOICES = [

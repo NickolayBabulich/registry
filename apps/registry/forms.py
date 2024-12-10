@@ -34,11 +34,9 @@ class DocumentForm(forms.ModelForm):
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Ограничиваем выбор схем только схемами текущего пользователя
         if user:
             self.fields['registry_schema'].queryset = RegistrySchema.objects.filter(owner=user)
             self.fields['registry_schema'].empty_label = "Выберите схему документа"
-
 
 
 class DocumentCreateFromSchemaForm(forms.ModelForm):

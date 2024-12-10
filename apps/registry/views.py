@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,6 +19,8 @@ from apps.registry.forms import (
 )
 from apps.registry.models import Document, DocumentAccess, DocumentField, RegistrySchema
 from apps.registry.utils.exporters.base import ExporterFactory
+from apps.registry.utils.template_generator import DocumentTemplateGenerator
+from apps.registry.utils.template_importer import ExcelTemplateImporter
 
 
 class DocumentAccessMixin(UserPassesTestMixin):
@@ -60,6 +63,7 @@ class OwnerRequiredMixin(UserPassesTestMixin):
     def handle_no_permission(self):
         messages.error(self.request, "У вас нет прав для выполнения этого действия")
         return redirect('registry:documents')
+
 
 class RegistrySchemaListView(LoginRequiredMixin, ListView):
     model = RegistrySchema
@@ -117,6 +121,7 @@ class RegistrySchemaDeleteView(LoginRequiredMixin, SuccessMessageMixin, OwnerReq
     context_object_name = "registry_schema"
     success_message = "Схема успешно удалена"
 
+
 class DocumentListView(LoginRequiredMixin, ListView):
     model = Document
     template_name = "registry/document/list.html"
@@ -165,8 +170,8 @@ class DocumentCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
             "entries": [],
             "registry_schema": None,
             "is_create": True,
-            "available_schemas": user_schemas,  # Добавляем список доступных схем
-            "has_schemas": user_schemas.exists(),  # Флаг наличия схем
+            "available_schemas": user_schemas,
+            "has_schemas": user_schemas.exists(),
         })
         return context
 
@@ -322,6 +327,7 @@ class DocumentDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
     def get_success_url(self):
         return reverse("registry:documents")
 
+
 class DocumentAccessView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
         document = get_object_or_404(Document, pk=self.kwargs["pk"])
@@ -373,6 +379,7 @@ class DocumentAccessDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
         messages.success(request, "Доступ успешно отозван")
         return redirect("registry:document-access", pk=pk)
 
+
 @login_required
 def export_document(request, document_id, format_type="json"):
     document = get_object_or_404(
@@ -398,3 +405,92 @@ def export_document(request, document_id, format_type="json"):
     except ValueError as e:
         messages.error(request, str(e))
         return redirect("registry:document-detail", pk=document_id)
+
+
+class DocumentTemplateView(LoginRequiredMixin, DocumentAccessMixin, View):
+    """Представление для скачивания шаблона документа"""
+
+    def get_object(self):
+        """Получение объекта документа"""
+        return get_object_or_404(
+            Document.objects.select_related('registry_schema'),
+            pk=self.kwargs['pk']
+        )
+
+    def get(self, request, *args, **kwargs):
+        document = self.get_object()
+
+        generator = DocumentTemplateGenerator(document)
+        output = generator.generate()
+
+        filename = f"template_{document.name}_{document.registry_schema.name}.xlsx"
+
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        return response
+
+
+class DocumentImportView(LoginRequiredMixin, DocumentAccessMixin, View):
+    """Представление для импорта данных из Excel в документ"""
+
+    def get_object(self):
+        """Получение объекта документа"""
+        return get_object_or_404(
+            Document.objects.select_related('registry_schema'),
+            pk=self.kwargs['pk']
+        )
+
+    def test_func(self):
+        document = self.get_object()
+        # Проверяем, что у пользователя есть права на редактирование
+        if document.created_by == self.request.user:
+            return True
+        access = DocumentAccess.objects.filter(
+            document=document,
+            user=self.request.user,
+            permission__in=['edit', 'admin']
+        ).exists()
+        return access
+
+    def get(self, request, *args, **kwargs):
+        document = self.get_object()
+        return render(request, 'registry/document/import.html', {
+            'document': document
+        })
+
+    def post(self, request, *args, **kwargs):
+        document = self.get_object()
+
+        if 'file' not in request.FILES:
+            messages.error(request, "Файл не был загружен")
+            return redirect('registry:document-detail', pk=document.pk)
+
+        try:
+            excel_file = request.FILES['file']
+            importer = ExcelTemplateImporter(document.registry_schema)
+            records = importer.parse_excel(excel_file.read())
+
+            # Создаем записи в базе данных
+            created_records = []
+            for record_data in records:
+                field = DocumentField.objects.create(
+                    document=document,
+                    data=record_data
+                )
+                created_records.append(field)
+
+            messages.success(
+                request,
+                f"Успешно импортировано {len(created_records)} записей"
+            )
+
+        except ValidationError as e:
+            messages.error(request, str(e))
+        except Exception as e:
+            messages.error(request, f"Произошла ошибка при импорте: {str(e)}")
+
+        return redirect('registry:document-detail', pk=document.pk)

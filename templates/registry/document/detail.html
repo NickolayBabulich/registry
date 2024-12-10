@@ -63,9 +63,32 @@
                             </li>
                         </ul>
                     </div>
+
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary d-inline-flex align-items-center gap-2"
+                                type="button"
+                                data-bs-toggle="dropdown">
+                            <i class="bi bi-upload" style="font-size: 1.42rem;"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center"
+                                   href="{% url 'registry:document-template' pk=document.pk %}">
+                                    <i class="bi bi-cloud-download me-2"></i>
+                                    Скачать шаблон
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center"
+                                   href="{% url 'registry:document-import' pk=document.pk %}">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                                    Импорт из Шаблона
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 {% endif %}
-
-
 
                 <div class="dropdown">
                     <button class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" type="button"
